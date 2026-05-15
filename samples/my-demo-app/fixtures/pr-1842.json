@@ -1,0 +1,15 @@
+{
+  "kind": "pr",
+  "id": 1842,
+  "repo": "bradygaster/squad",
+  "title": "Fix flaky CI in CLI watch mode",
+  "description": "Intermittent failures in watch mode integration tests. Includes changes in CLI command routing and test harness setup.",
+  "labels": ["bug", "ci", "cli"],
+  "author": "octocat",
+  "changedFiles": [
+    "packages/squad-cli/src/cli/commands/watch/config.ts",
+    "packages/squad-cli/src/cli-entry.ts",
+    "test/watch-mode.test.ts"
+  ],
+  "ciStatus": "failing"
+}

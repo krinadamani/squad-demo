@@ -35,7 +35,7 @@ git init
 **✓ Validate:** Run `git status` — you should see "No commits yet".
 
 ### 2. Install Squad
-
+ 
 ```bash
 npm install -g @bradygaster/squad-cli
 squad init

@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-05-14T22:33:49.547Z",
+  "intake": {
+    "kind": "pr",
+    "id": 1842,
+    "repo": "bradygaster/squad",
+    "title": "Fix flaky CI in CLI watch mode",
+    "description": "Intermittent failures in watch mode integration tests. Includes changes in CLI command routing and test harness setup.",
+    "labels": [
+      "bug",
+      "ci",
+      "cli"
+    ],
+    "author": "octocat",
+    "changedFiles": [
+      "packages/squad-cli/src/cli/commands/watch/config.ts",
+      "packages/squad-cli/src/cli-entry.ts",
+      "test/watch-mode.test.ts"
+    ],
+    "ciStatus": "failing"
+  },
+  "severity": "high",
+  "areas": [
+    "cli",
+    "tests"
+  ],
+  "riskFlags": [
+    "High severity signal from CI/labels/content",
+    "CI failing; merge should be blocked"
+  ],
+  "suggestedOwnerRole": "lead",
+  "nextActions": [
+    "Confirm reproduction details and expected behavior in issue/PR thread.",
+    "Assign primary owner and reviewer pair.",
+    "Stabilize CI before merge; capture failing test evidence.",
+    "Run CLI smoke tests and command routing regression checks.",
+    "Audit flaky tests for timing and environment coupling.",
+    "Escalate to on-call lead and require explicit human approval gate."
+  ],
+  "agentOutputs": {
+    "lead": "Prioritize PR #1842 as HIGH and enforce approval before merge. [fallback used: LLM provider set to fallback mode]",
+    "developer": "Assess impacted areas: cli, tests. Draft minimal safe fix and rollback plan. [fallback used: LLM provider set to fallback mode]",
+    "tester": "Design focused regression checks for affected modules and verify CI stability. [fallback used: LLM provider set to fallback mode]",
+    "scribe": "Publish triage summary, risks, and action checklist to the team thread. [fallback used: LLM provider set to fallback mode]"
+  },
+  "llm": {
+    "provider": "fallback",
+    "model": "heuristic-fallback"
+  }
+}
