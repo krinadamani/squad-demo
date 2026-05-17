@@ -6,10 +6,12 @@
  *  2. Cast a deterministic triage team
  *  3. Onboard agents for persistent team continuity
  *  4. Run lightweight engineering triage heuristics on issue/PR input
- *  5. Emit JSON + Markdown triage reports for human review
+ *  5. Per-role LLM commentary via GitHub Copilot (SquadClient)
+ *  6. Emit JSON + Markdown triage reports for human review
+ *
+ * GITHUB_TOKEN required (token must have GitHub Copilot access).
  */
 
-import { execSync } from 'node:child_process';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,8 +22,10 @@ import {
   onboardAgent,
 } from '@bradygaster/squad-sdk';
 import type { CastMember } from '@bradygaster/squad-sdk';
+import { SquadClient } from '@bradygaster/squad-sdk/client';
 
 type IntakeKind = 'issue' | 'pr';
+type Role = 'lead' | 'developer' | 'tester' | 'scribe';
 
 interface IntakePayload {
   kind: IntakeKind;
@@ -50,17 +54,8 @@ interface TriageReport {
     scribe: string;
   };
   llm: {
-    provider: 'openai' | 'azure-openai' | 'ollama' | 'fallback';
-    model: string;
+    provider: 'github-copilot';
   };
-}
-
-interface LlmSettings {
-  provider: 'openai' | 'azure-openai' | 'ollama' | 'fallback';
-  model: string;
-  baseUrl: string;
-  apiKey?: string;
-  apiVersion?: string;
 }
 
 function hr(label: string): void {
@@ -117,47 +112,6 @@ function loadDotEnv(sampleRoot: string): void {
 
     process.env[key] = value;
   }
-}
-
-function getLlmSettings(): LlmSettings {
-  const providerEnv = (process.env.LLM_PROVIDER ?? '').toLowerCase();
-  const openAiKey = process.env.OPENAI_API_KEY;
-  const azureOpenAiKey = process.env.AZURE_OPENAI_API_KEY ?? openAiKey;
-  const azureBaseUrl = process.env.AZURE_OPENAI_ENDPOINT ?? process.env.OPENAI_BASE_URL;
-  const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT;
-
-  if (providerEnv === 'azure-openai') {
-    return {
-      provider: 'azure-openai',
-      model: azureDeployment ?? process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
-      baseUrl: azureBaseUrl ?? '',
-      apiKey: azureOpenAiKey,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION ?? '2024-10-21',
-    };
-  }
-
-  if (providerEnv === 'openai' || (!providerEnv && openAiKey)) {
-    return {
-      provider: 'openai',
-      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
-      baseUrl: process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-      apiKey: openAiKey,
-    };
-  }
-
-  if (providerEnv === 'fallback') {
-    return {
-      provider: 'fallback',
-      model: 'heuristic-fallback',
-      baseUrl: '',
-    };
-  }
-
-  return {
-    provider: 'ollama',
-    model: process.env.OLLAMA_MODEL ?? 'llama3.1',
-    baseUrl: process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434',
-  };
 }
 
 function defaultPayload(): IntakePayload {
@@ -293,7 +247,7 @@ function nextActions(payload: IntakePayload, severity: 'low' | 'medium' | 'high'
 }
 
 function buildFallbackOutput(
-  role: 'lead' | 'developer' | 'tester' | 'scribe',
+  role: Role,
   payload: IntakePayload,
   severity: 'low' | 'medium' | 'high',
   areas: string[],
@@ -317,169 +271,17 @@ function truncateForPrompt(text: string, maxChars = 1800): string {
   return `${text.slice(0, maxChars)}...`;
 }
 
-function getAzureOpenAiBearerToken(): string {
-  const envToken = process.env.AZURE_OPENAI_BEARER_TOKEN?.trim();
-  if (envToken && !envToken.startsWith('your_')) {
-    return envToken;
-  }
-
-  const useAzCli = (process.env.AZURE_OPENAI_USE_AZ_CLI ?? 'true').toLowerCase();
-  if (useAzCli === 'false') {
-    throw new Error('AZURE_OPENAI_BEARER_TOKEN is not set and AZURE_OPENAI_USE_AZ_CLI=false');
-  }
-
-  try {
-    const raw = execSync(
-      'az account get-access-token --resource https://cognitiveservices.azure.com/ --output json',
-      { encoding: 'utf8' },
-    );
-    const parsed = JSON.parse(raw) as { accessToken?: string };
-    const token = parsed.accessToken?.trim();
-    if (!token) {
-      throw new Error('Azure CLI returned an empty access token');
-    }
-    return token;
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      `Unable to obtain Azure bearer token. Run 'az login' and ensure access to the Azure OpenAI resource, or set AZURE_OPENAI_BEARER_TOKEN. Details: ${reason}`,
-    );
-  }
-}
-
-async function callLlm(settings: LlmSettings, systemPrompt: string, userPrompt: string): Promise<string> {
-  if (settings.provider === 'fallback') {
-    throw new Error('LLM provider set to fallback mode');
-  }
-
-  if (settings.provider === 'azure-openai') {
-    if (!settings.baseUrl) {
-      throw new Error('AZURE_OPENAI_ENDPOINT (or OPENAI_BASE_URL) is not set');
-    }
-    if (!settings.model) {
-      throw new Error('AZURE_OPENAI_DEPLOYMENT is not set');
-    }
-
-    const authMode = (process.env.AZURE_OPENAI_AUTH_MODE ?? 'entra').toLowerCase();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (authMode === 'key') {
-      if (!settings.apiKey || settings.apiKey.startsWith('your_')) {
-        throw new Error('AZURE_OPENAI_API_KEY is not set for key auth mode');
-      }
-      headers['api-key'] = settings.apiKey;
-    } else {
-      headers.Authorization = `Bearer ${getAzureOpenAiBearerToken()}`;
-    }
-
-    const base = settings.baseUrl.replace(/\/$/, '');
-    const apiVersion = settings.apiVersion ?? '2024-10-21';
-    const url = `${base}/openai/deployments/${settings.model}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        temperature: 0.2,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Azure OpenAI API error ${response.status}: ${body}`);
-    }
-
-    const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = json.choices?.[0]?.message?.content?.trim();
-    if (!content) {
-      throw new Error('Azure OpenAI API returned an empty response');
-    }
-    return content;
-  }
-
-  if (settings.provider === 'openai') {
-    if (!settings.apiKey) {
-      throw new Error('OPENAI_API_KEY is not set');
-    }
-
-    const response = await fetch(`${settings.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${settings.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: settings.model,
-        temperature: 0.2,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${body}`);
-    }
-
-    const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = json.choices?.[0]?.message?.content?.trim();
-    if (!content) {
-      throw new Error('OpenAI API returned an empty response');
-    }
-    return content;
-  }
-
-  const response = await fetch(`${settings.baseUrl}/api/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: settings.model,
-      stream: false,
-      prompt: `${systemPrompt}\n\n${userPrompt}`,
-      options: {
-        temperature: 0.2,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Ollama API error ${response.status}: ${body}`);
-  }
-
-  const json = (await response.json()) as { response?: string };
-  const content = json.response?.trim();
-  if (!content) {
-    throw new Error('Ollama returned an empty response');
-  }
-  return content;
-}
-
-function roleInstructions(role: 'lead' | 'developer' | 'tester' | 'scribe'): string {
+function roleInstructions(role: Role): string {
   if (role === 'lead') {
     return 'Classify severity, choose owner role, and list approval/escalation guidance in 4 concise bullets.';
   }
   if (role === 'developer') {
-    return 'Identify likely root cause areas, safe fix strategy, and rollback plan in 4 concise bullets.';
+    return 'Using the Lead\'s severity and ownership framing, identify likely root cause areas, a safe fix strategy, and rollback plan in 4 concise bullets.';
   }
   if (role === 'tester') {
-    return 'Propose focused regression test plan and CI checks in 4 concise bullets.';
+    return 'Based on the Developer\'s proposed fix strategy, propose focused regression tests, CI checks, and exit criteria in 4 concise bullets. Reference specific risks the Developer raised.';
   }
-  return 'Produce a concise triage summary suitable for PR comment with risks and next actions in 4 concise bullets.';
+  return 'Synthesize the Lead, Developer, and Tester outputs into a concise PR-comment-ready triage summary in 4 concise bullets. Highlight blockers, owner, fix approach, and verification plan.';
 }
 
 function readAgentCharter(squadDir: string, agentName: string): string {
@@ -490,8 +292,48 @@ function readAgentCharter(squadDir: string, agentName: string): string {
   return truncateForPrompt(readFileSync(charterPath, 'utf8'));
 }
 
+async function callCopilot(
+  client: SquadClient,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  const session = await client.createSession({
+    systemMessage: { mode: 'append', content: systemPrompt },
+    onPermissionRequest: () => ({ kind: 'approved' }),
+  });
+
+  const anySession = session as unknown as {
+    sendAndWait?: (msg: { prompt: string }, timeoutMs?: number) => Promise<unknown>;
+    close?: () => Promise<void> | void;
+  };
+
+  try {
+    if (!anySession.sendAndWait) {
+      throw new Error('Session does not support sendAndWait');
+    }
+
+    const result = await anySession.sendAndWait({ prompt: userPrompt }, 120_000);
+    const data = (result as Record<string, unknown> | undefined)?.['data'] as
+      | Record<string, unknown>
+      | undefined;
+    const content =
+      (typeof data?.['content'] === 'string' ? (data['content'] as string) : '') ||
+      (typeof result === 'string' ? result : '');
+    const trimmed = content.trim();
+    if (!trimmed) {
+      throw new Error('Copilot returned an empty response');
+    }
+    return trimmed;
+  } finally {
+    if (typeof anySession.close === 'function') {
+      await anySession.close();
+    }
+  }
+}
+
 async function generateAgentOutput(
-  role: 'lead' | 'developer' | 'tester' | 'scribe',
+  client: SquadClient,
+  role: Role,
   payload: IntakePayload,
   severity: 'low' | 'medium' | 'high',
   areas: string[],
@@ -499,7 +341,7 @@ async function generateAgentOutput(
   actions: string[],
   team: CastMember[],
   squadDir: string,
-  settings: LlmSettings,
+  priorOutputs: Partial<Record<Role, string>>,
 ): Promise<string> {
   const agent = team.find((member) => member.role === role);
   const displayName = agent?.displayName ?? role;
@@ -508,8 +350,19 @@ async function generateAgentOutput(
   const systemPrompt = [
     `You are ${displayName} with role ${role} in an engineering intake and PR triage workflow.`,
     'Keep output concise, actionable, and focused on software delivery risk management.',
+    'Build on the prior teammates\' outputs when provided. Do not contradict them without justification.',
     'Do not include markdown headings.',
   ].join(' ');
+
+  const priorLines: string[] = [];
+  const priorOrder: Role[] = ['lead', 'developer', 'tester', 'scribe'];
+  for (const priorRole of priorOrder) {
+    if (priorRole === role) break;
+    const text = priorOutputs[priorRole];
+    if (text) {
+      priorLines.push(`--- ${priorRole.toUpperCase()} output ---\n${truncateForPrompt(text, 1200)}`);
+    }
+  }
 
   const userPrompt = [
     `Ticket: ${payload.kind.toUpperCase()} #${payload.id} in ${payload.repo}`,
@@ -523,44 +376,52 @@ async function generateAgentOutput(
     `Risk flags: ${riskFlags.join(' | ') || 'none'}`,
     `Proposed next actions: ${actions.join(' | ')}`,
     `Agent charter excerpt: ${charter}`,
+    priorLines.length
+      ? `Prior teammate outputs to build on:\n${priorLines.join('\n\n')}`
+      : 'You are the first role; no prior teammate outputs yet.',
     `Task: ${roleInstructions(role)}`,
   ].join('\n');
 
   try {
-    const response = await callLlm(settings, systemPrompt, userPrompt);
-    return response;
+    return await callCopilot(client, systemPrompt, userPrompt);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     return `${buildFallbackOutput(role, payload, severity, areas)} [fallback used: ${reason}]`;
   }
 }
 
-async function buildReport(payload: IntakePayload, team: CastMember[], squadDir: string): Promise<TriageReport> {
-  const settings = getLlmSettings();
+async function buildReport(
+  client: SquadClient,
+  payload: IntakePayload,
+  team: CastMember[],
+  squadDir: string,
+): Promise<TriageReport> {
   const severity = classifySeverity(payload);
   const areas = detectAreas(payload);
   const riskFlags = computeRiskFlags(payload, severity);
   const ownerRole = suggestedOwnerRole(severity, areas);
   const actions = nextActions(payload, severity, areas);
 
-  console.log(`  LLM provider: ${settings.provider}`);
-  console.log(`  LLM model: ${settings.model}`);
+  console.log('  LLM provider: github-copilot');
+  console.log('  Pipeline: lead → developer → tester → scribe (each sees prior outputs)');
 
-  const lead = await generateAgentOutput('lead', payload, severity, areas, riskFlags, actions, team, squadDir, settings);
+  const outputs: Partial<Record<Role, string>> = {};
+
+  outputs.lead = await generateAgentOutput(client, 'lead', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Lead LLM Output]');
-  console.log(`  ${lead.replace(/\n/g, '\n  ')}`);
+  console.log(`  ${outputs.lead.replace(/\n/g, '\n  ')}`);
 
-  const developer = await generateAgentOutput('developer', payload, severity, areas, riskFlags, actions, team, squadDir, settings);
+  outputs.developer = await generateAgentOutput(client, 'developer', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Developer LLM Output]');
-  console.log(`  ${developer.replace(/\n/g, '\n  ')}`);
+  console.log(`  ${outputs.developer.replace(/\n/g, '\n  ')}`);
 
-  const tester = await generateAgentOutput('tester', payload, severity, areas, riskFlags, actions, team, squadDir, settings);
+  outputs.tester = await generateAgentOutput(client, 'tester', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Tester LLM Output]');
-  console.log(`  ${tester.replace(/\n/g, '\n  ')}`);
+  console.log(`  ${outputs.tester.replace(/\n/g, '\n  ')}`);
 
-  const scribe = await generateAgentOutput('scribe', payload, severity, areas, riskFlags, actions, team, squadDir, settings);
+  outputs.scribe = await generateAgentOutput(client, 'scribe', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Scribe LLM Output]');
-  console.log(`  ${scribe.replace(/\n/g, '\n  ')}`);
+  console.log(`  ${outputs.scribe.replace(/\n/g, '\n  ')}`);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -571,14 +432,13 @@ async function buildReport(payload: IntakePayload, team: CastMember[], squadDir:
     suggestedOwnerRole: ownerRole,
     nextActions: actions,
     agentOutputs: {
-      lead,
-      developer,
-      tester,
-      scribe,
+      lead: outputs.lead,
+      developer: outputs.developer,
+      tester: outputs.tester,
+      scribe: outputs.scribe,
     },
     llm: {
-      provider: settings.provider,
-      model: settings.model,
+      provider: 'github-copilot',
     },
   };
 }
@@ -594,7 +454,6 @@ function toMarkdown(report: TriageReport): string {
   lines.push(`- Severity: ${report.severity}`);
   lines.push(`- Suggested owner role: ${report.suggestedOwnerRole}`);
   lines.push(`- LLM provider: ${report.llm.provider}`);
-  lines.push(`- LLM model: ${report.llm.model}`);
   lines.push('');
   lines.push('## Risk flags');
   if (report.riskFlags.length === 0) {
@@ -625,6 +484,15 @@ async function main(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url));
   loadDotEnv(here);
 
+  if (!process.env.GITHUB_TOKEN) {
+    console.error('\n❌ Missing GITHUB_TOKEN environment variable.\n');
+    console.error('Setup:');
+    console.error('  1. Generate a token at https://github.com/settings/tokens');
+    console.error('  2. Ensure your account has GitHub Copilot enabled');
+    console.error('  3. Set GITHUB_TOKEN in .env or your shell environment\n');
+    process.exit(1);
+  }
+
   hr('Step 1 — Resolve .squad/ directory');
 
   const demoRoot = join(here, '.demo-data');
@@ -652,7 +520,7 @@ async function main(): Promise<void> {
   hr('Step 3 — Cast triage team');
 
   const engine = new CastingEngine();
-  const requiredRoles = ['lead', 'developer', 'tester', 'scribe'] as const;
+  const requiredRoles: Role[] = ['lead', 'developer', 'tester', 'scribe'];
 
   const team: CastMember[] = engine.castTeam({
     universe: 'usual-suspects',
@@ -708,9 +576,32 @@ async function main(): Promise<void> {
 
   console.log('  └─────────────┴──────────────────┴──────────────────────────────────────────┘');
 
-  hr('Step 6 — Run triage + emit report');
+  hr('Step 6 — Connect to GitHub Copilot');
 
-  const report = await buildReport(payload, team, squadDir);
+  const client = new SquadClient({ githubToken: process.env.GITHUB_TOKEN });
+
+  try {
+    await client.connect();
+    console.log('  ✅ Connected to Copilot');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`\n❌ Connection failed: ${msg}\n`);
+    console.error('Verify your GITHUB_TOKEN is valid and has Copilot access.\n');
+    process.exit(1);
+  }
+
+  hr('Step 7 — Run triage + emit report');
+
+  let report: TriageReport;
+  try {
+    report = await buildReport(client, payload, team, squadDir);
+  } finally {
+    const closable = client as unknown as { disconnect?: () => Promise<void> | void };
+    if (typeof closable.disconnect === 'function') {
+      await closable.disconnect();
+    }
+  }
+
   const reportsDir = join(demoRoot, 'reports');
   mkdirSync(reportsDir, { recursive: true });
 
@@ -727,7 +618,7 @@ async function main(): Promise<void> {
   console.log(`  JSON report: ${jsonPath}`);
   console.log(`  Markdown report: ${mdPath}`);
 
-  hr('Step 7 — Casting history (persistent names)');
+  hr('Step 8 — Casting history (persistent names)');
 
   const history = new CastingHistory();
   const config = {
@@ -743,7 +634,7 @@ async function main(): Promise<void> {
 
   console.log(`\n  Casting records: ${history.size}`);
   console.log('  Cast #1 names:', team.map((member) => member.name).join(', '));
-  console.log('  Cast #2 names:', team2.map((member) => member.name).join(', '));
+  console.log('  Cast #2 names:', team2.map((member: CastMember) => member.name).join(', '));
 
   const match = team.every((member, index) => member.name === team2[index].name);
   console.log(`  Names match across casts: ${match ? '✅ Yes' : '❌ No'}`);
