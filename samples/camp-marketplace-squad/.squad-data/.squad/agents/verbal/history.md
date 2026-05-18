@@ -17,16 +17,19 @@ SunnyDays — a kids summer camp marketplace with browse, cart, and mock checkou
 
 Ready to contribute to the team.
 
-## SunnyDays — Kids Summer Camps Marketplace — scribe output — 2026-05-18T16:10:27.254Z
+## Learnings
+### 2026-05-18
 
-- **What shipped** — `output/index.html` (15 749 bytes, zero dependencies, zero build step): 8 seeded camp cards across 6 categories (Sports, STEM, Aquatics, Arts, Outdoors, Performing Arts + Culinary), filter bar, in-memory cart with quantity controls and auto-remove at 0, subtotal/total panel (no tax), and a mock checkout form that emits a generated order ID on submit.
+**SunnyDays — Kids Summer Camps Marketplace — scribe output**
 
-- **How to run it** — `npm run serve` → open **http://localhost:4200**. (Run `npm start` first only if `output/index.html` is missing; the file is already on disk.)
+- **What shipped:** `output/index.html` — a self-contained, zero-dependency SPA (15 KB, vanilla HTML/CSS/JS) seeding 8 summer camp cards across 6 categories (Sports, STEM, Aquatics, Arts, Outdoors, Performing Arts + Culinary). Full browse → filter → cart → checkout → confirmation flow; in-memory cart with quantity controls, running subtotal, and mock order-ID generation on submit.
 
-- **Known limitations** — State is tab-scoped only (cart resets on refresh); no auth, no real payment processing, no backend persistence; order IDs are not stored anywhere; mobile layout untested; no accessibility audit completed.
+- **How to run:** `npm run serve` from `camp-marketplace-squad/` → open **http://localhost:4200** in any browser. No install step needed beyond `npm ci` if `node_modules` is absent.
 
-- **Recommended next iteration** — Wire `localStorage` so the cart survives a page reload; add a camp detail modal (Builder flagged `goTo` is extensible); introduce real form validation + error states; run Lighthouse on mobile and fix any a11y failures before broader promotion.
+- **Known limitations:** State is tab-scoped and resets on refresh (no persistence); mock card field performs no real validation beyond `required`; category filter is a static list (adding a 9th camp requires a manual code edit); no accessibility audit completed; mobile layout untested below 375 px.
 
-- **Demo script (3 steps)** — ① Open http://localhost:4200 and click the **STEM** filter pill — confirm only STEM camps appear. ② Click **Reserve spot** on two different camps; watch the cart badge increment and the button flash "✓ Added!"; open the cart and use **+**/**−** to adjust quantities, then verify subtotal updates live. ③ Click **Proceed to checkout**, fill in any parent name, email, and mock card number, submit — confirm an order ID appears on the confirmation screen.
+- **Recommended next iteration:** Add `localStorage` persistence so the cart survives refresh; extract camp data to a JSON feed so non-engineers can seed new camps; swap mock checkout for a Stripe Elements integration; run Lighthouse a11y audit and fix critical failures.
 
-- **Team credits** — Product Manager (vision, user stories, success metric) · Builder (vanilla HTML/CSS/JS architecture, data model, component breakdown) · QA Lead (acceptance criteria for browse, cart, and checkout flows) · Verbal / Scribe (this launch summary).
+- **Demo script (3 steps):** ①  On load, click **"STEM"** to filter — confirm 2 cards remain visible. ② Click **"Add to cart"** on *Code Wizards Academy*, watch the button flash ✓ and the cart badge increment; repeat for *RoboBuilders Lab* then open the cart to confirm subtotal. ③ Fill the checkout form (any name, valid email format, 16-digit card, MM/YY expiry) → **Place Order** → confirm the `ORD-XXXXXX` confirmation screen appears.
+
+- **Team credits:** 🎯 **Product Manager** — vision, user stories, and MVP guardrails · 🔨 **Builder** — architecture, data model, and shipped `index.html` · 🔍 **QA Lead** — acceptance criteria and risk coverage · 📝 **Verbal / Scribe** — launch summary and institutional record.
