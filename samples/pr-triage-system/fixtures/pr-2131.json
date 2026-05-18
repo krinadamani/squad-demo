@@ -1,0 +1,20 @@
+{
+  "kind": "pr",
+  "id": 2131,
+  "repo": "bradygaster/squad",
+  "title": "Migrate dashboard to React 19 and fix hydration warnings",
+  "description": "Upgrades the Node 20 / Next.js dashboard from React 18 to React 19, adopts the new useActionState hook in form components, and resolves three hydration mismatch warnings in the team roster widget caused by date formatting on the server vs client. Includes a bump of @testing-library/react to v16 and refreshed snapshot tests.",
+  "labels": ["frontend", "react", "upgrade", "dx"],
+  "author": "frontend-dev",
+  "changedFiles": [
+    "apps/dashboard/package.json",
+    "apps/dashboard/src/app/layout.tsx",
+    "apps/dashboard/src/components/RosterWidget.tsx",
+    "apps/dashboard/src/components/forms/CastForm.tsx",
+    "apps/dashboard/src/hooks/useTeamData.ts",
+    "apps/dashboard/src/lib/formatDate.ts",
+    "apps/dashboard/__tests__/RosterWidget.test.tsx",
+    "apps/dashboard/__tests__/CastForm.test.tsx"
+  ],
+  "ciStatus": "passing"
+}

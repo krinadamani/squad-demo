@@ -1,9 +1,9 @@
 {
-  "name": "@squad-samples/my-demo-app",
+  "name": "@squad-samples/pr-triage-system",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "My Demo App based on hello-squad",
+  "description": "Engineering Intake and PR Triage assistant built with the Squad SDK",
   "scripts": {
     "start": "npx tsx index.ts",
     "test": "vitest run"

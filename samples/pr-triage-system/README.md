@@ -1,4 +1,4 @@
-# my-demo-app
+# pr-triage-system
 
 This sample is an Engineering Intake and PR Triage assistant built with the Squad SDK.
 It casts a deterministic team (lead, developer, tester, scribe), runs triage heuristics on an issue/PR payload, and writes review-ready reports.

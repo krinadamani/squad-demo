@@ -1,4 +1,4 @@
-# my-demo-app — Flow Diagram
+# pr-triage-system — Flow Diagram
 
 Step-by-step runtime flow. For the high-level layering (app vs SDK vs Copilot) see [ARCHITECTURE.md](ARCHITECTURE.md).
 

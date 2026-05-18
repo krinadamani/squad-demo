@@ -1,5 +1,5 @@
 /**
- * my-demo-app — Engineering Intake + PR Triage assistant
+ * pr-triage-system — Engineering Intake + PR Triage assistant
  *
  * Demonstrates:
  *  1. Resolve local workspace state under .demo-data/.squad
@@ -292,6 +292,29 @@ function readAgentCharter(squadDir: string, agentName: string): string {
   return truncateForPrompt(readFileSync(charterPath, 'utf8'));
 }
 
+function appendToAgentHistory(squadDir: string, agentName: string, intake: IntakePayload, role: Role, output: string): void {
+  const historyPath = join(squadDir, 'agents', agentName.toLowerCase(), 'history.md');
+  if (!existsSync(historyPath)) {
+    return; // Skip if history file doesn't exist yet
+  }
+
+  const intakeMarker = `${intake.kind.toUpperCase()} #${intake.id} — ${role} output`;
+
+  try {
+    const existing = readFileSync(historyPath, 'utf8');
+    if (existing.includes(intakeMarker)) {
+      console.log(`     ⏭  ${agentName} history already has ${intake.kind.toUpperCase()} #${intake.id} (${role}) — skipping`);
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const entry = `\n## ${intakeMarker} — ${timestamp}\n\n${output}\n`;
+    writeFileSync(historyPath, existing + entry, 'utf8');
+  } catch (err) {
+    console.warn(`⚠️  Failed to write to agent history: ${historyPath}`, err);
+  }
+}
+
 async function callCopilot(
   client: SquadClient,
   systemPrompt: string,
@@ -410,18 +433,34 @@ async function buildReport(
   outputs.lead = await generateAgentOutput(client, 'lead', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Lead LLM Output]');
   console.log(`  ${outputs.lead.replace(/\n/g, '\n  ')}`);
+  const leadAgent = team.find((m) => m.role === 'lead');
+  if (leadAgent && outputs.lead) {
+    appendToAgentHistory(squadDir, leadAgent.name, payload, 'lead', outputs.lead);
+  }
 
   outputs.developer = await generateAgentOutput(client, 'developer', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Developer LLM Output]');
   console.log(`  ${outputs.developer.replace(/\n/g, '\n  ')}`);
+  const devAgent = team.find((m) => m.role === 'developer');
+  if (devAgent && outputs.developer) {
+    appendToAgentHistory(squadDir, devAgent.name, payload, 'developer', outputs.developer);
+  }
 
   outputs.tester = await generateAgentOutput(client, 'tester', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Tester LLM Output]');
   console.log(`  ${outputs.tester.replace(/\n/g, '\n  ')}`);
+  const testerAgent = team.find((m) => m.role === 'tester');
+  if (testerAgent && outputs.tester) {
+    appendToAgentHistory(squadDir, testerAgent.name, payload, 'tester', outputs.tester);
+  }
 
   outputs.scribe = await generateAgentOutput(client, 'scribe', payload, severity, areas, riskFlags, actions, team, squadDir, outputs);
   console.log('\n  [Scribe LLM Output]');
   console.log(`  ${outputs.scribe.replace(/\n/g, '\n  ')}`);
+  const scribeAgent = team.find((m) => m.role === 'scribe');
+  if (scribeAgent && outputs.scribe) {
+    appendToAgentHistory(squadDir, scribeAgent.name, payload, 'scribe', outputs.scribe);
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -479,7 +518,7 @@ function toMarkdown(report: TriageReport): string {
 }
 
 async function main(): Promise<void> {
-  console.log('🎬 my-demo-app — Engineering Intake + PR Triage\n');
+  console.log('🎬 pr-triage-system — Engineering Intake + PR Triage\n');
 
   const here = dirname(fileURLToPath(import.meta.url));
   loadDotEnv(here);
@@ -551,7 +590,7 @@ async function main(): Promise<void> {
       agentName: member.name.toLowerCase(),
       role: member.role,
       displayName: member.displayName,
-      projectContext: 'My demo app showcasing Squad SDK casting, onboarding, and persistent identities.',
+      projectContext: 'PR Triage System showcasing Squad SDK casting, onboarding, and persistent identities.',
       userName: 'DemoUser',
     });
 

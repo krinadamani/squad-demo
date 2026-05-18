@@ -1,0 +1,18 @@
+{
+  "kind": "pr",
+  "id": 2103,
+  "repo": "bradygaster/squad",
+  "title": "Refactor Python ETL pipeline to use async I/O",
+  "description": "Converts the nightly ETL pipeline from synchronous requests to asyncio + aiohttp for ~3x throughput. Touches the ingestion worker, the transform stage, and adds new pytest-asyncio tests. Concerned about silent exception swallowing in the new gather() blocks and a possible connection pool leak under load.",
+  "labels": ["refactor", "backend", "python", "performance"],
+  "author": "py-dev",
+  "changedFiles": [
+    "services/etl/python/ingest_worker.py",
+    "services/etl/python/transform.py",
+    "services/etl/python/http_client.py",
+    "services/etl/python/requirements.txt",
+    "tests/etl/test_ingest_worker.py",
+    "tests/etl/test_transform_async.py"
+  ],
+  "ciStatus": "passing"
+}

@@ -1,0 +1,18 @@
+{
+  "kind": "pr",
+  "id": 2057,
+  "repo": "bradygaster/squad",
+  "title": "Add rate limiting middleware to backend API gateway",
+  "description": "Introduces a token-bucket rate limiter for the public backend API to mitigate abusive traffic patterns. Touches the API gateway middleware stack, the Redis-backed counter store, and adds integration tests. Backend team flagged elevated 429 risk during rollout; needs careful staging validation before production deploy.",
+  "labels": ["enhancement", "backend", "api", "security"],
+  "author": "backend-bot",
+  "changedFiles": [
+    "packages/backend/src/api/gateway/middleware.ts",
+    "packages/backend/src/api/gateway/rate-limiter.ts",
+    "packages/backend/src/store/redis-counter.ts",
+    "packages/backend/src/config/limits.ts",
+    "test/backend/rate-limiter.test.ts",
+    "test/backend/gateway-integration.test.ts"
+  ],
+  "ciStatus": "passing"
+}

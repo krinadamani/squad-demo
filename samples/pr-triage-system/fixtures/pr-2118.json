@@ -1,0 +1,13 @@
+{
+  "kind": "pr",
+  "id": 2118,
+  "repo": "bradygaster/squad",
+  "title": "Fix typo in README quickstart section",
+  "description": "Corrects 'squd' to 'squad' and fixes a broken anchor link in the quickstart section of the README. Pure documentation change, no code impact.",
+  "labels": ["docs", "good-first-issue"],
+  "author": "newcomer-dev",
+  "changedFiles": [
+    "README.md"
+  ],
+  "ciStatus": "passing"
+}

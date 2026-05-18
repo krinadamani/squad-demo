@@ -1,4 +1,4 @@
-# my-demo-app — Architecture Overview
+# pr-triage-system — Architecture Overview
 
 High-level view of which layer owns what, and how the demo app reaches the LLM.
 
@@ -6,7 +6,7 @@ High-level view of which layer owns what, and how the demo app reaches the LLM.
 flowchart TB
     User([👤 Developer]) -->|npm start| App
 
-    subgraph App["🟦 my-demo-app (your code)"]
+    subgraph App["🟦 pr-triage-system (your code)"]
         direction TB
         A1[Load .env + intake payload]
         A2[Heuristics:<br/>severity, areas,<br/>risk flags, next actions]
@@ -44,7 +44,7 @@ flowchart TB
 
 | Layer | Responsibility |
 |---|---|
-| 🟦 **my-demo-app** | Domain logic: intake parsing, severity heuristics, prompt building, report rendering. |
+| 🟦 **pr-triage-system** | Domain logic: intake parsing, severity heuristics, prompt building, report rendering. |
 | 🟩 **squad-sdk** | Team casting, agent onboarding, Copilot client/session management, identity history. |
 | 🟪 **GitHub Copilot** | The LLM. The SDK talks to it; the app never calls OpenAI/Azure directly. |
 
