@@ -1,0 +1,28 @@
+{
+  "kind": "pr",
+  "id": 2204,
+  "repo": "bradygaster/squad",
+  "title": "Add URL shortener web app (React UI + Express API, in-memory store)",
+  "description": "Introduces a small full-stack URL shortener under apps/url-shortener. Frontend is a React + Vite single-page UI that lets the user paste a long URL and receive a shortened https://short.local/<code> link. Backend is an Express server exposing POST /api/shorten and GET /:code (302 redirect). Storage is a simple in-memory Map (no DB), seeded empty on each boot. Adds a Vitest unit suite for the encoder and a Playwright smoke test that creates a link and follows the redirect. Includes a README with `npm run dev` instructions.",
+  "labels": ["feature", "fullstack", "frontend", "backend", "nodejs"],
+  "author": "fullstack-dev",
+  "changedFiles": [
+    "apps/url-shortener/package.json",
+    "apps/url-shortener/server/index.ts",
+    "apps/url-shortener/server/store.ts",
+    "apps/url-shortener/server/encoder.ts",
+    "apps/url-shortener/server/routes/shorten.ts",
+    "apps/url-shortener/server/routes/redirect.ts",
+    "apps/url-shortener/web/index.html",
+    "apps/url-shortener/web/src/main.tsx",
+    "apps/url-shortener/web/src/App.tsx",
+    "apps/url-shortener/web/src/components/ShortenForm.tsx",
+    "apps/url-shortener/web/src/components/ResultCard.tsx",
+    "apps/url-shortener/web/src/lib/api.ts",
+    "apps/url-shortener/web/vite.config.ts",
+    "apps/url-shortener/README.md",
+    "test/url-shortener/encoder.test.ts",
+    "test/url-shortener/e2e.spec.ts"
+  ],
+  "ciStatus": "passing"
+}

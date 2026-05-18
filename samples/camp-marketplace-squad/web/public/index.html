@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SunnyDays Squad — Live Build Dashboard</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">🏕️</span>
+      <div>
+        <h1>SunnyDays Squad — Live Build</h1>
+        <p class="tagline">Watch a 4-person AI product team design and ship a real web app, in order.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a id="launch-link" href="http://localhost:4200" target="_blank" rel="noopener" class="ghost-link disabled">Launch marketplace ↗</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: Product brief + controls -->
+    <section class="panel intake-panel">
+      <h2>① Product brief</h2>
+      <p class="hint">The squad is shipping this. Same brief every run.</p>
+
+      <div id="brief-card" class="brief-card">Loading brief…</div>
+
+      <button id="run-btn" class="primary-btn">▶ Run the squad</button>
+
+      <div class="legend">
+        <h3>Pipeline</h3>
+        <ol class="pipeline-legend">
+          <li><span class="pill">PM</span> writes brief & scope</li>
+          <li><span class="pill">Builder</span> reads PM → plans the app</li>
+          <li><span class="pill">QA</span> reads PM+Builder → defines AC</li>
+          <li><span class="pill">Launch</span> reads all → writes README</li>
+        </ol>
+        <p class="hint small">Each agent also reads its own <code>history.md</code> from prior runs.</p>
+      </div>
+    </section>
+
+    <!-- CENTER: Pipeline -->
+    <section class="panel pipeline-panel">
+      <h2>② Live squad pipeline</h2>
+      <div id="status-bar" class="status-bar">Idle. Click "Run the squad" to begin.</div>
+
+      <div class="pipeline" id="pipeline">
+        <!-- Agent cards injected by JS -->
+      </div>
+    </section>
+
+    <!-- RIGHT: Ship status + History -->
+    <section class="panel report-panel">
+      <h2>③ Ship status</h2>
+      <div id="ship-card" class="ship-card empty">Nothing shipped yet. Run the squad to build the app.</div>
+
+      <h3 class="subhead">Agent history (memory)</h3>
+      <label class="field">
+        <span>View agent history</span>
+        <select id="history-agent-select">
+          <option value="">— select agent —</option>
+        </select>
+      </label>
+      <pre id="history-viewer" class="history-viewer empty">History will appear here…</pre>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Powered by <strong>@bradygaster/squad-sdk</strong> + GitHub Copilot</span>
+  </footer>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>

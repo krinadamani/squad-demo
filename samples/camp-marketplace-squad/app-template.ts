@@ -1,0 +1,512 @@
+/**
+ * app-template.ts — The actual deliverable produced by the squad.
+ *
+ * Returns a self-contained HTML string for a kids summer camp marketplace.
+ * Storage is in-memory (per-tab) via the browser, with three views:
+ *   1. Browse camps (cards with photo, age range, dates, price)
+ *   2. Cart (add/remove, quantity)
+ *   3. Checkout (mock payment, generates order confirmation)
+ */
+
+export interface Camp {
+  id: string;
+  title: string;
+  category: string;
+  ageRange: string;
+  dates: string;
+  location: string;
+  price: number;
+  emoji: string;
+  description: string;
+}
+
+export const CAMPS: Camp[] = [
+  {
+    id: 'soccer-stars',
+    title: 'Soccer Stars Academy',
+    category: 'Sports',
+    ageRange: '6-10',
+    dates: 'Jun 15 – Jun 19',
+    location: 'Lincoln Park',
+    price: 285,
+    emoji: '⚽',
+    description: 'Daily drills, friendly matches, and skills coaching from former college players.',
+  },
+  {
+    id: 'maker-lab',
+    title: 'Maker Lab: Robotics & 3D',
+    category: 'STEM',
+    ageRange: '8-12',
+    dates: 'Jun 22 – Jun 26',
+    location: 'Innovation Center',
+    price: 395,
+    emoji: '🤖',
+    description: 'Build LEGO robots, design 3D prints, and finish the week with a maker showcase.',
+  },
+  {
+    id: 'splash-week',
+    title: 'Splash Week Swim Camp',
+    category: 'Aquatics',
+    ageRange: '5-9',
+    dates: 'Jul 6 – Jul 10',
+    location: 'Aqua Center',
+    price: 240,
+    emoji: '🏊',
+    description: 'Stroke technique, water safety, and Friday pool-party graduation.',
+  },
+  {
+    id: 'art-explorers',
+    title: 'Art Explorers Studio',
+    category: 'Arts',
+    ageRange: '6-11',
+    dates: 'Jul 13 – Jul 17',
+    location: 'Riverside Studio',
+    price: 265,
+    emoji: '🎨',
+    description: 'Painting, clay, printmaking, and a Friday gallery for parents.',
+  },
+  {
+    id: 'wild-trails',
+    title: 'Wild Trails Nature Camp',
+    category: 'Outdoors',
+    ageRange: '7-12',
+    dates: 'Jul 20 – Jul 24',
+    location: 'Forest Preserve',
+    price: 310,
+    emoji: '🌲',
+    description: 'Hiking, wildlife journaling, fire building, and an overnight under the stars.',
+  },
+  {
+    id: 'code-creators',
+    title: 'Code Creators: Scratch & Python',
+    category: 'STEM',
+    ageRange: '9-13',
+    dates: 'Jul 27 – Jul 31',
+    location: 'Tech Hub',
+    price: 375,
+    emoji: '💻',
+    description: 'From first Scratch game to first Python script — ship something playable.',
+  },
+  {
+    id: 'broadway-bound',
+    title: 'Broadway Bound Theater',
+    category: 'Performing Arts',
+    ageRange: '8-13',
+    dates: 'Aug 3 – Aug 7',
+    location: 'Community Theater',
+    price: 320,
+    emoji: '🎭',
+    description: 'Acting, singing, choreography, and a Friday-night live performance.',
+  },
+  {
+    id: 'chef-juniors',
+    title: 'Chef Juniors Culinary Camp',
+    category: 'Culinary',
+    ageRange: '7-12',
+    dates: 'Aug 10 – Aug 14',
+    location: 'Teaching Kitchen',
+    price: 295,
+    emoji: '👨‍🍳',
+    description: 'Knife skills, baking, world cuisines, and a family tasting on Friday.',
+  },
+];
+
+export function buildAppHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SunnyDays — Kids Summer Camps</title>
+<style>
+  :root {
+    --brand: #ff7a45;
+    --brand-dark: #e85d2a;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --bg: #fff7ed;
+    --card: #ffffff;
+    --line: #fde4cc;
+    --accent: #2563eb;
+    --green: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header h1 { margin: 0; font-size: 1.5rem; }
+  nav { display: flex; gap: 0.5rem; }
+  nav button {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.15s;
+  }
+  nav button:hover { background: rgba(255,255,255,0.25); }
+  nav button.active { background: white; color: var(--brand-dark); border-color: white; font-weight: 600; }
+  .cart-badge {
+    background: white;
+    color: var(--brand-dark);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-weight: 700;
+    margin-left: 0.4rem;
+    font-size: 0.85rem;
+  }
+  main { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .card .emoji { font-size: 3rem; line-height: 1; }
+  .card h3 { margin: 0.5rem 0 0.25rem; font-size: 1.1rem; }
+  .card .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+  .card .desc { color: var(--ink); font-size: 0.9rem; flex-grow: 1; margin-bottom: 1rem; }
+  .card .footer { display: flex; justify-content: space-between; align-items: center; }
+  .price { font-size: 1.25rem; font-weight: 700; color: var(--brand-dark); }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    background: var(--bg);
+    color: var(--brand-dark);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+  }
+  button.primary {
+    background: var(--brand);
+    color: white;
+    border: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  button.primary:hover { background: var(--brand-dark); }
+  button.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .cart-item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .cart-item .emoji { font-size: 2rem; }
+  .cart-item .info { flex-grow: 1; }
+  .cart-item h4 { margin: 0 0 0.25rem; }
+  .cart-item .info .meta { color: var(--muted); font-size: 0.85rem; }
+  .cart-summary {
+    background: var(--card);
+    border: 2px solid var(--brand);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .cart-summary .row { display: flex; justify-content: space-between; padding: 0.4rem 0; }
+  .cart-summary .total { font-weight: 700; font-size: 1.2rem; border-top: 1px solid var(--line); padding-top: 0.75rem; margin-top: 0.5rem; }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 3rem 1rem;
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px dashed var(--line);
+  }
+  form.checkout {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  form.checkout label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
+  form.checkout input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  form.checkout button { width: 100%; padding: 0.75rem; font-size: 1rem; margin-top: 1rem; }
+  .confirmation {
+    background: #ecfdf5;
+    border: 2px solid var(--green);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .confirmation .check { font-size: 4rem; color: var(--green); }
+  .confirmation h2 { margin: 0.5rem 0; }
+  .confirmation .order-id {
+    font-family: monospace;
+    background: white;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 0.5rem;
+  }
+  h2 { margin-top: 0; }
+  .filter-bar { margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .filter-bar button {
+    background: white;
+    border: 1px solid var(--line);
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+  .filter-bar button.active { background: var(--brand); color: white; border-color: var(--brand); }
+</style>
+</head>
+<body>
+<header>
+  <h1>☀️ SunnyDays Camps</h1>
+  <nav>
+    <button data-view="browse" class="active">Browse Camps</button>
+    <button data-view="cart">Cart <span class="cart-badge" id="cart-count">0</span></button>
+  </nav>
+</header>
+
+<main>
+  <section class="view active" id="view-browse">
+    <h2>Discover Summer Camps</h2>
+    <p style="color: var(--muted); margin-top: 0;">Hand-picked programs for kids ages 5-13. Add the ones you love to your cart.</p>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div class="grid" id="camp-grid"></div>
+  </section>
+
+  <section class="view" id="view-cart">
+    <h2>Your Cart</h2>
+    <div id="cart-items"></div>
+    <div id="cart-summary"></div>
+  </section>
+
+  <section class="view" id="view-checkout">
+    <h2>Checkout</h2>
+    <form class="checkout" id="checkout-form">
+      <label>Parent name <input required name="name" placeholder="Jane Doe" /></label>
+      <label>Email <input required type="email" name="email" placeholder="jane@example.com" /></label>
+      <label>Card number (mock) <input required name="card" placeholder="4242 4242 4242 4242" maxlength="19" /></label>
+      <label>Expiry <input required name="exp" placeholder="MM/YY" /></label>
+      <button type="submit" class="primary">Pay & confirm</button>
+    </form>
+  </section>
+
+  <section class="view" id="view-confirmation">
+    <div class="confirmation">
+      <div class="check">✅</div>
+      <h2>You're all set!</h2>
+      <p>A confirmation email is on the way. We can't wait to see your camper.</p>
+      <div class="order-id" id="order-id"></div>
+      <p style="margin-top: 1.5rem;"><button class="primary" onclick="goTo('browse')">Browse more camps</button></p>
+    </div>
+  </section>
+</main>
+
+<script>
+  const CAMPS = ${JSON.stringify(CAMPS, null, 2)};
+  let cart = []; // in-memory: { campId, qty }
+
+  function $(id) { return document.getElementById(id); }
+  function getCamp(id) { return CAMPS.find(c => c.id === id); }
+  function cartTotal() {
+    return cart.reduce((sum, line) => sum + (getCamp(line.campId).price * line.qty), 0);
+  }
+  function cartCount() {
+    return cart.reduce((sum, line) => sum + line.qty, 0);
+  }
+
+  function renderFilter() {
+    const cats = ['All', ...new Set(CAMPS.map(c => c.category))];
+    const bar = $('filter-bar');
+    bar.innerHTML = '';
+    let active = 'All';
+    cats.forEach(cat => {
+      const b = document.createElement('button');
+      b.textContent = cat;
+      if (cat === active) b.classList.add('active');
+      b.onclick = () => {
+        active = cat;
+        bar.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        renderCamps(cat);
+      };
+      bar.appendChild(b);
+    });
+  }
+
+  function renderCamps(filter) {
+    const grid = $('camp-grid');
+    grid.innerHTML = '';
+    const list = filter && filter !== 'All' ? CAMPS.filter(c => c.category === filter) : CAMPS;
+    list.forEach(camp => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = \`
+        <div class="emoji">\${camp.emoji}</div>
+        <h3>\${camp.title}</h3>
+        <div class="meta"><span class="badge">\${camp.category}</span> Ages \${camp.ageRange}</div>
+        <div class="meta">📅 \${camp.dates} • 📍 \${camp.location}</div>
+        <p class="desc">\${camp.description}</p>
+        <div class="footer">
+          <span class="price">\$\${camp.price}</span>
+          <button class="primary" data-add="\${camp.id}">Add to cart</button>
+        </div>
+      \`;
+      grid.appendChild(card);
+    });
+    grid.querySelectorAll('[data-add]').forEach(btn => {
+      btn.onclick = () => addToCart(btn.getAttribute('data-add'));
+    });
+  }
+
+  function addToCart(id) {
+    const existing = cart.find(l => l.campId === id);
+    if (existing) existing.qty++;
+    else cart.push({ campId: id, qty: 1 });
+    updateBadge();
+    const btn = document.querySelector(\`[data-add="\${id}"]\`);
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Added!';
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 900);
+    }
+  }
+
+  function removeFromCart(id) {
+    cart = cart.filter(l => l.campId !== id);
+    updateBadge();
+    renderCart();
+  }
+
+  function changeQty(id, delta) {
+    const line = cart.find(l => l.campId === id);
+    if (!line) return;
+    line.qty += delta;
+    if (line.qty <= 0) cart = cart.filter(l => l.campId !== id);
+    updateBadge();
+    renderCart();
+  }
+
+  function updateBadge() {
+    $('cart-count').textContent = cartCount();
+  }
+
+  function renderCart() {
+    const wrap = $('cart-items');
+    const summary = $('cart-summary');
+    wrap.innerHTML = '';
+    summary.innerHTML = '';
+    if (cart.length === 0) {
+      wrap.innerHTML = '<div class="empty">Your cart is empty. Browse camps to get started!</div>';
+      return;
+    }
+    cart.forEach(line => {
+      const camp = getCamp(line.campId);
+      const item = document.createElement('div');
+      item.className = 'cart-item';
+      item.innerHTML = \`
+        <div class="emoji">\${camp.emoji}</div>
+        <div class="info">
+          <h4>\${camp.title}</h4>
+          <div class="meta">\${camp.dates} • Ages \${camp.ageRange} • \$\${camp.price} each</div>
+        </div>
+        <button class="ghost" data-dec="\${camp.id}">−</button>
+        <strong>\${line.qty}</strong>
+        <button class="ghost" data-inc="\${camp.id}">+</button>
+        <button class="ghost" data-rem="\${camp.id}">Remove</button>
+      \`;
+      wrap.appendChild(item);
+    });
+    wrap.querySelectorAll('[data-inc]').forEach(b => b.onclick = () => changeQty(b.getAttribute('data-inc'), 1));
+    wrap.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => changeQty(b.getAttribute('data-dec'), -1));
+    wrap.querySelectorAll('[data-rem]').forEach(b => b.onclick = () => removeFromCart(b.getAttribute('data-rem')));
+
+    const total = cartTotal();
+    summary.innerHTML = \`
+      <div class="cart-summary">
+        <div class="row"><span>Items</span><span>\${cartCount()}</span></div>
+        <div class="row"><span>Subtotal</span><span>\$\${total}</span></div>
+        <div class="row total"><span>Total</span><span>\$\${total}</span></div>
+        <button class="primary" style="width:100%; margin-top:1rem;" onclick="goTo('checkout')">Proceed to checkout</button>
+      </div>
+    \`;
+  }
+
+  function goTo(viewName) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    $('view-' + viewName).classList.add('active');
+    const navBtn = document.querySelector(\`nav button[data-view="\${viewName}"]\`);
+    if (navBtn) navBtn.classList.add('active');
+    if (viewName === 'cart') renderCart();
+  }
+
+  document.querySelectorAll('nav button[data-view]').forEach(btn => {
+    btn.onclick = () => goTo(btn.getAttribute('data-view'));
+  });
+
+  $('checkout-form').onsubmit = (e) => {
+    e.preventDefault();
+    if (cart.length === 0) { alert('Your cart is empty.'); goTo('browse'); return; }
+    const orderId = 'SUN-' + Date.now().toString(36).toUpperCase();
+    $('order-id').textContent = 'Order ID: ' + orderId;
+    cart = [];
+    updateBadge();
+    goTo('confirmation');
+  };
+
+  renderFilter();
+  renderCamps('All');
+  updateBadge();
+</script>
+</body>
+</html>`;
+}

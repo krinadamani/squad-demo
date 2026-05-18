@@ -1,0 +1,20 @@
+{
+  "name": "@squad-samples/camp-marketplace-squad",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Squad SDK sample where a product team designs and ships a kids summer camp marketplace web app (browse, cart, checkout)",
+  "scripts": {
+    "start": "npx tsx index.ts",
+    "serve": "npx tsx serve.ts",
+    "dashboard": "npx tsx dashboard.ts"
+  },
+  "dependencies": {
+    "@bradygaster/squad-sdk": "file:../../packages/squad-sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0"
+  }
+}
