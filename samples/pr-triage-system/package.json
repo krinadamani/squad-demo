@@ -6,6 +6,7 @@
   "description": "Engineering Intake and PR Triage assistant built with the Squad SDK",
   "scripts": {
     "start": "npx tsx index.ts",
+    "web": "npx tsx server.ts",
     "test": "vitest run"
   },
   "dependencies": {

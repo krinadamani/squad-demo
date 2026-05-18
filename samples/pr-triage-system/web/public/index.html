@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Squad PR Triage — Live</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">🎭</span>
+      <div>
+        <h1>Squad PR Triage</h1>
+        <p class="tagline">Watch a deterministic AI team triage your PR — live, with memory.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="https://github.com/bradygaster/squad" target="_blank" rel="noopener" class="ghost-link">Squad SDK ↗</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: Intake -->
+    <section class="panel intake-panel">
+      <h2>① Choose an intake</h2>
+      <p class="hint">Pick a fixture PR or paste your own JSON to triage.</p>
+
+      <label class="field">
+        <span>Fixture</span>
+        <select id="fixture-select"></select>
+      </label>
+
+      <details class="payload-details" open>
+        <summary>Intake payload</summary>
+        <textarea id="payload-editor" spellcheck="false" rows="14"></textarea>
+      </details>
+
+      <button id="run-btn" class="primary-btn">▶ Run Triage</button>
+
+      <div class="legend">
+        <h3>How to read this UI</h3>
+        <ul>
+          <li><span class="dot dot-pending"></span> Pending — agent hasn't started</li>
+          <li><span class="dot dot-thinking"></span> Thinking — reading prior context</li>
+          <li><span class="dot dot-done"></span> Done — output ready, history saved</li>
+        </ul>
+        <p class="hint small">
+          Each agent reads the prior agents' outputs <em>and</em> their own
+          <code>history.md</code> — so they remember past triages.
+        </p>
+      </div>
+    </section>
+
+    <!-- CENTER: Pipeline -->
+    <section class="panel pipeline-panel">
+      <h2>② Live Squad pipeline</h2>
+      <div id="status-bar" class="status-bar">Idle. Pick a fixture and hit Run.</div>
+
+      <div class="pipeline" id="pipeline">
+        <!-- Agent cards injected by JS -->
+      </div>
+    </section>
+
+    <!-- RIGHT: Report + History -->
+    <section class="panel report-panel">
+      <h2>③ Triage report</h2>
+      <div id="heuristics" class="heuristics empty">Heuristics will appear here…</div>
+
+      <div id="report" class="report empty">Final report will appear here…</div>
+
+      <h3 class="subhead">Agent history (memory)</h3>
+      <label class="field">
+        <span>View agent history</span>
+        <select id="history-agent-select">
+          <option value="">— select agent —</option>
+        </select>
+      </label>
+      <pre id="history-viewer" class="history-viewer empty">History will appear here…</pre>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Powered by <strong>@bradygaster/squad-sdk</strong> + GitHub Copilot</span>
+  </footer>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>
