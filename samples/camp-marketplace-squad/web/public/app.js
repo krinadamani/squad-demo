@@ -15,6 +15,7 @@ const els = {
 
 let currentTeam = [];
 let roleDisplay = { lead: 'Lead', developer: 'Developer', tester: 'Tester', scribe: 'Scribe' };
+let lastSpec = null; // { spec, source, warnings }
 
 function setStatus(msg, active = false) {
   els.statusBar.textContent = msg;
@@ -124,12 +125,22 @@ function setHistoryTag(role, agentName, skipped) {
 
 function renderShipped(paths) {
   els.shipCard.classList.remove('empty');
+  const specBlock = lastSpec
+    ? `
+    <div style="margin-top: 0.6rem; padding: 0.5rem 0.6rem; background: var(--bg); border-radius: 6px;">
+      <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.25rem;">
+        BuildSpec from Builder <em>(source: ${escapeHtml(lastSpec.source)})</em>
+      </div>
+      <pre style="margin: 0; font-size: 0.72rem; white-space: pre-wrap; color: var(--text);">${escapeHtml(JSON.stringify(lastSpec.spec, null, 2))}</pre>
+      ${lastSpec.warnings && lastSpec.warnings.length ? `<div style="margin-top: 0.35rem; font-size: 0.7rem; color: var(--danger);">⚠ ${lastSpec.warnings.map(escapeHtml).join('<br/>⚠ ')}</div>` : ''}
+    </div>`
+    : '';
   els.shipCard.innerHTML = `
     <div><strong>🎉 SunnyDays shipped!</strong></div>
     <div style="margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-dim);">
       App: <code>${escapeHtml(basename(paths.app))}</code><br/>
       Brief: <code>${escapeHtml(basename(paths.brief))}</code>
-    </div>
+    </div>${specBlock}
     <div class="launch-row">
       <a href="http://localhost:4200" target="_blank" rel="noopener">Launch marketplace ↗</a>
     </div>
@@ -177,6 +188,7 @@ function runBuild() {
   els.runBtn.disabled = true;
   els.shipCard.classList.add('empty');
   els.shipCard.textContent = 'Squad is working…';
+  lastSpec = null;
   renderEmptyPipeline(currentTeam);
 
   fetch('/api/build', { method: 'POST' })
@@ -247,6 +259,10 @@ function handleEvent(event, data) {
       if (els.historyAgentSelect.value === data.agentName.toLowerCase()) {
         loadAgentHistory(data.agentName.toLowerCase());
       }
+      break;
+    case 'spec_parsed':
+      lastSpec = { spec: data.spec, source: data.source, warnings: data.warnings || [] };
+      setStatus(`BuildSpec parsed (source: ${data.source}) — theming app…`, true);
       break;
     case 'app_shipped':
       renderShipped(data.paths);

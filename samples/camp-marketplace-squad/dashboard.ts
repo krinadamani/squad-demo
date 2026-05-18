@@ -101,6 +101,7 @@ async function handleBuild(_req: IncomingMessage, res: ServerResponse): Promise<
       onAgentStart: (role, agent, ctx) => emit('agent_start', { role, agent, context: ctx }),
       onAgentComplete: (role, output) => emit('agent_complete', { role, output }),
       onHistoryWritten: (role, agentName, skipped) => emit('history_written', { role, agentName, skipped }),
+      onSpecParsed: (spec, source, warnings) => emit('spec_parsed', { spec, source, warnings }),
       onAppShipped: (paths) => emit('app_shipped', { paths }),
     };
 

@@ -65,6 +65,12 @@ async function main(): Promise<void> {
       onHistoryWritten: (_role, agentName, skipped) => {
         console.log(skipped ? `     ⏭  history.md already had entry — skipped` : `     💾 appended to ${agentName}/history.md`);
       },
+      onSpecParsed: (spec, source, warnings) => {
+        hr('Step 4½ — Builder BuildSpec parsed');
+        console.log(`  source: ${source}`);
+        console.log(`  spec:   ${JSON.stringify(spec)}`);
+        for (const w of warnings) console.log(`  ⚠  ${w}`);
+      },
       onAppShipped: (paths) => {
         hr('Step 5 — Builder shipped the deliverable');
         console.log(`  ✅ Web app:     ${paths.app}`);

@@ -6,8 +6,8 @@
 <title>SunnyDays — Kids Summer Camps</title>
 <style>
   :root {
-    --brand: #ff7a45;
-    --brand-dark: #e85d2a;
+    --brand: #f59e0b;
+    --brand-dark: #d97706;
     --ink: #1f2937;
     --muted: #6b7280;
     --bg: #fff7ed;
@@ -192,7 +192,7 @@
 </head>
 <body>
 <header>
-  <h1>☀️ SunnyDays Camps</h1>
+  <h1>☀️ SunnyDays — Summer Camps</h1>
   <nav>
     <button data-view="browse" class="active">Browse Camps</button>
     <button data-view="cart">Cart <span class="cart-badge" id="cart-count">0</span></button>
@@ -202,7 +202,7 @@
 <main>
   <section class="view active" id="view-browse">
     <h2>Discover Summer Camps</h2>
-    <p style="color: var(--muted); margin-top: 0;">Hand-picked programs for kids ages 5-13. Add the ones you love to your cart.</p>
+    <p style="color: var(--muted); margin-top: 0;">Browse hand-picked camps for kids ages 5–13, build your perfect summer, and check out in minutes.</p>
     <div class="filter-bar" id="filter-bar"></div>
     <div class="grid" id="camp-grid"></div>
   </section>
@@ -326,6 +326,8 @@
     "description": "Knife skills, baking, world cuisines, and a family tasting on Friday."
   }
 ];
+  const FEATURED_CATEGORY = "All";
+  const CTA_LABEL = "Reserve spot";
   let cart = []; // in-memory: { campId, qty }
 
   function $(id) { return document.getElementById(id); }
@@ -341,7 +343,7 @@
     const cats = ['All', ...new Set(CAMPS.map(c => c.category))];
     const bar = $('filter-bar');
     bar.innerHTML = '';
-    let active = 'All';
+    let active = cats.includes(FEATURED_CATEGORY) ? FEATURED_CATEGORY : 'All';
     cats.forEach(cat => {
       const b = document.createElement('button');
       b.textContent = cat;
@@ -371,7 +373,7 @@
         <p class="desc">${camp.description}</p>
         <div class="footer">
           <span class="price">$${camp.price}</span>
-          <button class="primary" data-add="${camp.id}">Add to cart</button>
+          <button class="primary" data-add="${camp.id}">${CTA_LABEL}</button>
         </div>
       `;
       grid.appendChild(card);
@@ -479,7 +481,7 @@
   };
 
   renderFilter();
-  renderCamps('All');
+  renderCamps(FEATURED_CATEGORY);
   updateBadge();
 </script>
 </body>

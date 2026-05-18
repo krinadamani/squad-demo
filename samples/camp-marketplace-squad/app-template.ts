@@ -20,6 +20,29 @@ export interface Camp {
   description: string;
 }
 
+/**
+ * BuildSpec — the structured contract between the Builder agent and the shipped HTML.
+ * The Builder emits this as a JSON code block; core.ts parses it and passes it here.
+ * Every field is optional; missing values fall back to DEFAULT_SPEC.
+ */
+export interface BuildSpec {
+  brandColor?: string;        // primary brand color, e.g. '#ff7a45'
+  brandColorDark?: string;    // gradient end / hover state, e.g. '#e85d2a'
+  heroTitle?: string;         // header text, e.g. '☀️ SunnyDays Camps'
+  heroTagline?: string;       // browse-view subtitle paragraph
+  ctaLabel?: string;          // add-to-cart button label
+  featuredCategory?: string;  // category to pre-select in the filter bar (or 'All')
+}
+
+export const DEFAULT_SPEC: Required<BuildSpec> = {
+  brandColor: '#ff7a45',
+  brandColorDark: '#e85d2a',
+  heroTitle: '☀️ SunnyDays Camps',
+  heroTagline: 'Hand-picked programs for kids ages 5-13. Add the ones you love to your cart.',
+  ctaLabel: 'Add to cart',
+  featuredCategory: 'All',
+};
+
 export const CAMPS: Camp[] = [
   {
     id: 'soccer-stars',
@@ -111,7 +134,15 @@ export const CAMPS: Camp[] = [
   },
 ];
 
-export function buildAppHtml(): string {
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
+
+export function buildAppHtml(spec: BuildSpec = {}): string {
+  const s = { ...DEFAULT_SPEC, ...spec };
+  const heroTitle = escapeHtml(s.heroTitle);
+  const heroTagline = escapeHtml(s.heroTagline);
+  // ctaLabel and featuredCategory are injected as JSON for the client script (see below)
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -120,8 +151,8 @@ export function buildAppHtml(): string {
 <title>SunnyDays — Kids Summer Camps</title>
 <style>
   :root {
-    --brand: #ff7a45;
-    --brand-dark: #e85d2a;
+    --brand: ${s.brandColor};
+    --brand-dark: ${s.brandColorDark};
     --ink: #1f2937;
     --muted: #6b7280;
     --bg: #fff7ed;
@@ -306,7 +337,7 @@ export function buildAppHtml(): string {
 </head>
 <body>
 <header>
-  <h1>☀️ SunnyDays Camps</h1>
+  <h1>${heroTitle}</h1>
   <nav>
     <button data-view="browse" class="active">Browse Camps</button>
     <button data-view="cart">Cart <span class="cart-badge" id="cart-count">0</span></button>
@@ -316,7 +347,7 @@ export function buildAppHtml(): string {
 <main>
   <section class="view active" id="view-browse">
     <h2>Discover Summer Camps</h2>
-    <p style="color: var(--muted); margin-top: 0;">Hand-picked programs for kids ages 5-13. Add the ones you love to your cart.</p>
+    <p style="color: var(--muted); margin-top: 0;">${heroTagline}</p>
     <div class="filter-bar" id="filter-bar"></div>
     <div class="grid" id="camp-grid"></div>
   </section>
@@ -351,6 +382,8 @@ export function buildAppHtml(): string {
 
 <script>
   const CAMPS = ${JSON.stringify(CAMPS, null, 2)};
+  const FEATURED_CATEGORY = ${JSON.stringify(s.featuredCategory)};
+  const CTA_LABEL = ${JSON.stringify(s.ctaLabel)};
   let cart = []; // in-memory: { campId, qty }
 
   function $(id) { return document.getElementById(id); }
@@ -366,7 +399,7 @@ export function buildAppHtml(): string {
     const cats = ['All', ...new Set(CAMPS.map(c => c.category))];
     const bar = $('filter-bar');
     bar.innerHTML = '';
-    let active = 'All';
+    let active = cats.includes(FEATURED_CATEGORY) ? FEATURED_CATEGORY : 'All';
     cats.forEach(cat => {
       const b = document.createElement('button');
       b.textContent = cat;
@@ -396,7 +429,7 @@ export function buildAppHtml(): string {
         <p class="desc">\${camp.description}</p>
         <div class="footer">
           <span class="price">\$\${camp.price}</span>
-          <button class="primary" data-add="\${camp.id}">Add to cart</button>
+          <button class="primary" data-add="\${camp.id}">\${CTA_LABEL}</button>
         </div>
       \`;
       grid.appendChild(card);
@@ -504,7 +537,7 @@ export function buildAppHtml(): string {
   };
 
   renderFilter();
-  renderCamps('All');
+  renderCamps(FEATURED_CATEGORY);
   updateBadge();
 </script>
 </body>

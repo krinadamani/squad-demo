@@ -1,78 +1,86 @@
 # SunnyDays — Kids Summer Camps Marketplace — Team Delivery
 
-Generated: 2026-05-18T08:22:04.901Z
+Generated: 2026-05-18T09:09:04.034Z
+
+## BuildSpec (source: builder)
+
+```json
+{
+  "brandColor": "#f59e0b",
+  "brandColorDark": "#d97706",
+  "heroTitle": "☀️ SunnyDays — Summer Camps",
+  "heroTagline": "Browse hand-picked camps for kids ages 5–13, build your perfect summer, and check out in minutes.",
+  "ctaLabel": "Reserve spot",
+  "featuredCategory": "All"
+}
+```
 
 ## Product Manager — Keyser — Lead
 
-**SunnyDays Product Brief — v1**
-
-- **Vision:** One place for parents to discover, compare, and book kids' summer camps — no tab-juggling required.
+- **Vision:** SunnyDays is a single-stop marketplace where parents discover, compare, and book kids' summer camps in one frictionless checkout.
 
 - **Top 3 user stories:**
-  - *Browse & filter* — As a parent, I can view 8 camps as cards and filter by category (sports, STEM, arts, outdoors) so I can quickly narrow options for my child's age and interests.
-  - *Cart management* — As a parent, I can add multiple camps, adjust quantities, remove items, and see a live subtotal so I know my total commitment before committing.
-  - *Checkout* — As a parent, I can enter my name, email, and mock card details and receive an order confirmation ID so I feel the booking is real and traceable.
+  - As a parent, I can browse 8 seeded camps as cards (photo/emoji, age range, dates, price, category, description) and filter by category so I can quickly narrow options.
+  - As a parent, I can add multiple camps to a cart with quantity controls and remove items, seeing a live subtotal and total, so I can plan a full summer without losing my selections.
+  - As a parent, I can complete a checkout form (name, email, mock card) and receive an order confirmation ID so I feel confident my bookings are captured.
 
-- **Primary success metric:** ≥80% of sessions that add an item to cart reach a confirmed order ID (cart-to-confirmation rate).
+- **Primary success metric:** ≥80% of test sessions reach order confirmation from a cold browse start (full funnel completion rate).
 
-- **MVP scope guardrails:** 8 seeded camps only; in-memory state resets on page reload; single-currency (USD); no authentication; no real payment processing; no email delivery.
+- **MVP scope guardrails:** 8 seeded camps, client-side in-memory state only, single-page app, no auth, no real payments, no backend — ship fast and validate the browse→cart→checkout loop.
 
-- **Non-goals for v1:** Camp provider accounts / admin dashboard · User profiles or booking history · Search / keyword filtering · Reviews or ratings · Real payment gateway · Mobile-native app · Waitlists or availability enforcement.
+- **Non-goals for v1:** User accounts / login, persistent storage or backend API, camp operator portal, reviews/ratings, search/sort beyond category filter, mobile-native app, real payment processing, email delivery of order confirmation.
 
-- **Launch readiness signal:** All 8 camps render with correct metadata; filter, add-to-cart, quantity controls, remove, subtotal, and checkout form all function end-to-end in-browser; order confirmation ID is generated and displayed; no console errors on happy path.
+- **Launch readiness signal:** All three user stories pass end-to-end in a browser with zero console errors; cart total matches sum of line items; order ID renders on confirmation screen; category filter correctly isolates camps.
 
 ## Builder — McManus — Developer
 
-Here's the v1 implementation plan:
+**Implementation plan — SunnyDays v1**
 
-1. **Stack** — Vanilla HTML/CSS/JS, zero frameworks, zero build step. All state in a single `const state = { camps, cart, filters }` object in `app.js`. No localStorage — intentional reset on refresh per PM guardrail.
+- **Stack:** Vanilla HTML/CSS/JS, zero frameworks, zero build step. Single self-contained `output/index.html`. In-memory `cart` array scoped to the browser tab; no `localStorage`, no fetch calls after initial load.
+- **Components:** `<header>` nav (Browse / Cart with badge) → three `<section class="view">` panels: Browse (filter bar + card grid), Cart (item rows + summary block), Checkout form → Confirmation panel. View switching via `goTo()` toggling `.active` class.
+- **Data model:** `Camp { id, title, category, ageRange, dates, location, price, emoji, description }[]` — 8 records hardcoded in `app-template.ts`. Cart state: `{ campId: string, qty: number }[]`. No ORM, no schema — plain arrays with `find/filter/reduce`.
+- **Routing/state:** Client-side only. `goTo(viewName)` is the router. Reactive state flows one direction: user action → mutate `cart[]` → `renderCart()` / `updateBadge()`. No event bus; direct DOM re-renders keep complexity near zero.
+- **Accessibility:** Semantic `<button>`, `<form>`, `<label for>` elements throughout. `lang="en"` on `<html>`. Badge count exposed as visible text. Filter and quantity buttons are keyboard-focusable native elements. Color contrast meets WCAG AA against the warm-orange brand palette.
+- **Deliverable:** `./output/index.html` — single file, ships via `core.ts → buildAppHtml(spec)` → written to disk. Served by `serve.ts` on `:4200`.
 
-2. **Components** (logical sections rendered via JS into `#app`):
-   - `CampCard` — photo/emoji, name, category badge, age range, dates, price, "Add to Cart" button
-   - `FilterBar` — category pill buttons (All · Sports · STEM · Arts · Outdoors) with active state
-   - `CartDrawer` — slide-in panel; line items with `±` qty controls + remove `×`; subtotal + total
-   - `CheckoutModal` — form (parent name, email, mock card number/expiry/CVV); order confirmation view with generated ID
-
-3. **Data model**:
-   ```js
-   // Camp
-   { id, name, emoji, category, ageMin, ageMax, startDate, endDate, price, description }
-   // CartItem
-   { campId, qty }
-   // State
-   { camps: Camp[], cart: CartItem[], activeFilter: string, view: 'browse'|'checkout'|'confirmed' }
-   ```
-
-4. **Routing/state** — No router. `state.view` drives which UI section is visible (`display:none` toggling). All mutations go through a central `dispatch(action, payload)` → `render()` cycle. Order ID = `'SD-' + Date.now()`.
-
-5. **Accessibility** — Filter pills are `<button>` elements with `aria-pressed`. Cart drawer uses `role="dialog"` + `aria-modal="true"` + focus trap on open. Form inputs all have associated `<label>`. Color contrast ≥4.5:1 for all text.
-
-6. **Deliverable** — `./output/index.html` (self-contained: inline CSS + JS, no external deps, opens with `file://` in any browser).
+```json
+{
+  "brandColor": "#f59e0b",
+  "brandColorDark": "#d97706",
+  "heroTitle": "☀️ SunnyDays — Summer Camps",
+  "heroTagline": "Browse hand-picked camps for kids ages 5–13, build your perfect summer, and check out in minutes.",
+  "ctaLabel": "Reserve spot",
+  "featuredCategory": "All"
+}
+```
 
 ## QA Lead — Fenster — Tester
 
-- **Browse AC** — All 8 camps render on load; each card shows emoji, name, category badge, age range (e.g. "5–8"), date range, price, and description. Filtering by any single category hides non-matching cards; "All" restores all 8. Zero camps match an unused filter = empty-state message shown (not blank screen).
+- **Browse view AC:** All 8 camp cards render on load with emoji, title, age range, dates, price, category badge, and description visible. Category filter chips update the grid immediately — selecting a category hides non-matching cards; "All" restores all 8. Zero cards shown when a category has no matches must display a non-empty fallback message (no silent blank grid).
 
-- **Cart AC** — "Add to Cart" increments `qty` if camp already in `state.cart` (no duplicate line items). `+` / `−` controls update subtotal in real time; `−` at qty=1 is equivalent to remove. `×` removes line item entirely. Subtotal = Σ(price × qty); total equals subtotal (no tax/fees in v1 scope). Cart badge/count reflects live item count.
+- **Cart AC (add / remove / qty):** "Reserve spot" adds the camp to cart and increments the nav badge. Adding the same camp a second time increments quantity rather than duplicating the row. Qty `+`/`−` controls update line price and subtotal live; `−` at qty=1 removes the row entirely. Removing all items returns to an empty-cart state with a prompt to browse — subtotal and total must both read `$0.00`, not stale values.
 
-- **Checkout AC** — Form requires all three fields (name, email, mock card); submission blocked if any empty. Email field rejects non-`@` strings. On valid submit, a unique order ID is generated and displayed (format verifiable, e.g. non-empty alphanumeric string). Cart clears post-confirmation. No real payment call — mock card field accepts any digits.
+- **Checkout AC:** Form blocks submission when any of the three fields (parent name, email, mock card) is empty. Email field must reject malformed input (no `@`). On valid submit: order confirmation panel displays a non-empty generated order ID, the cart empties (badge resets to 0), and the user cannot navigate "back" into a populated cart. Confirmation panel must not be reachable by direct `goTo()` call with an empty cart.
 
-- **Edge cases** — Checkout CTA disabled / hidden when cart is empty (prevent zero-item order). Adding the same camp twice via "Add to Cart" merges into one line item (qty +1), not two rows. Qty upper bound: test at qty=99 — subtotal arithmetic must not overflow or NaN. Filter + add-to-cart combo: filtered-out camps must remain in cart (filter is display-only, not destructive).
+- **Edge cases:** Empty-cart checkout attempt → form is either unreachable or submit is blocked with a visible error, never silently succeeds. Duplicate "Reserve spot" clicks (fast double-tap) must not create two separate rows for the same camp. Qty pushed to very large values (e.g., 999) must not overflow or NaN the subtotal. Filter change while items are in-cart must not reset cart state.
 
-- **Accessibility / keyboard** — All interactive controls (filter pills, Add to Cart, `±`, `×`, Checkout submit) reachable and activatable via Tab + Enter/Space. Cart drawer and checkout modal must trap focus while open; Escape closes them. Category badges and price values need sufficient color contrast (WCAG AA). `<button>` elements used — not `<div onClick>` — per Builder's zero-framework stack.
+- **Accessibility / keyboard:** Every nav button, filter chip, qty control, and "Reserve spot" CTA must be reachable and activatable via `Tab` + `Enter`/`Space` alone. Cart badge count must be surfaced to screen readers (e.g., `aria-label="Cart, 3 items"`). Checkout form fields need associated `<label>` elements — verify no inputs are label-orphaned. Focus must not trap inside any view panel.
 
-- **In-memory tradeoff** — Explicitly documented risk: any page refresh wipes `state` (cart, filters, in-progress checkout). This is a **known, intentional v1 tradeoff** per PM guardrail — but QA must verify it doesn't cause silent data corruption (no partial-state hydration). Acceptance test: refresh mid-checkout → lands on fresh browse view, no JS errors, no ghost cart state. Flag for v2: localStorage or session persistence should be the first resilience story.
+- **Data-loss-on-reload (in-memory tradeoff):** Confirmed v1 design decision: all cart and order state is tab-scoped and resets on reload. This is a known limitation, not a bug — but the UI must **not** imply persistence (no "saved" language, no localStorage writes). Risk: users who accidentally refresh mid-checkout lose their cart silently. Recommend a `beforeunload` warning as a low-cost mitigation for v2 consideration; flag for PM sign-off before v1 ships.
 
 ## Launch Lead — Verbal — Scribe
 
-- **What shipped** — SunnyDays v1: a zero-dependency, single-file vanilla HTML/CSS/JS app with 8 seeded camps (sports, STEM, arts, outdoors). Delivers full browse → cart → checkout flow: category filter pills, camp cards (emoji · age range · dates · price · description), slide-in cart drawer with ± qty controls and live subtotal, and a checkout modal that emits a unique order confirmation ID. All state is in-memory; no backend.
+- **What shipped:** `output/index.html` — a fully self-contained, zero-dependency single-page app. 8 seeded camps render as emoji cards with age range, dates, price, category badge, and description. Category filter chips, a live cart with qty controls and badge, and a mock checkout form producing a unique order confirmation ID are all wired and working. No backend, no build step required.
 
-- **How to run it** — `npm start` (lets Squad build `output/index.html`) then `npm run serve` → open **http://localhost:4200**. Health check available at `/health`.
+- **How to run it:** `npm run serve` → open **http://localhost:4200**. The file is already on disk; no `npm start` needed unless regenerating the artifact.
 
-- **Known limitations** — State resets on page refresh (intentional v1 guardrail, no localStorage/backend). Single-page app served as one HTML file — deep-link and browser-back are unsupported. Mock card field is purely presentational; no validation beyond non-empty. No tax, fees, or promo codes. No accessibility audit completed.
+- **Known limitations:** State is tab-scoped in-memory only — a refresh clears the cart. No real payment processing; card field is cosmetic. No deep-link routing (URL doesn't change on view switch). No accessibility audit or mobile-breakpoint testing completed. Camp data is hardcoded; no CMS or admin interface.
 
-- **Recommended next iteration** — Persist cart to `localStorage` so refresh doesn't lose selections. Add age-range and date-range filters (QA flagged empty-state path; needs real filter combinations to surface it). Wire a real payment gateway stub (Stripe test mode). Add keyboard nav + ARIA roles for a11y compliance.
+- **Recommended next iteration:** Persist cart to `localStorage` so refreshes don't lose selections. Add a camp detail modal for richer descriptions and photos. Wire a real checkout API (Stripe, etc.). Introduce search/keyword filtering alongside category chips. Expand to 20+ camps with a lazy-load or pagination pattern.
 
-- **Demo script (3 steps)** — ① Open `http://localhost:4200`, click **STEM** pill — confirm only STEM camps appear; click **All** to restore all 8. ② Click **Add to Cart** on two different camps; open the cart drawer, tap `+` on one item and watch the subtotal update live. ③ Click **Checkout**, fill name / email / mock card, submit — note the generated order ID displayed on the confirmation screen.
+- **Demo script (3 steps):**
+  1. Load `http://localhost:4200` → click a category chip (e.g., "STEM") to filter the grid; confirm only matching camps appear.
+  2. Click **Reserve spot** on two different camps → watch the cart badge increment; open Cart, adjust qty with `+`/`−`, confirm subtotal updates live.
+  3. Click **Checkout**, fill parent name, email, and mock card → submit → screenshot the order confirmation ID.
 
-- **Team credit** — PM (product brief & success metrics) · Builder (stack decision, component architecture, data model) · QA Lead (acceptance criteria for browse, cart, and checkout) · **Verbal / Scribe** (this launch summary, institutional record).
+- **Team credits:** Product Manager (vision & success metrics) · Builder (HTML/CSS/JS implementation & data model) · QA Lead (acceptance criteria & edge-case coverage) · Verbal / Scribe (session synthesis & launch record).
