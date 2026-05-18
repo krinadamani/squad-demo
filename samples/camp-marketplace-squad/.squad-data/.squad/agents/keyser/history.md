@@ -18,19 +18,16 @@ SunnyDays — a kids summer camp marketplace with browse, cart, and mock checkou
 Ready to contribute to the team.
 
 
-## SunnyDays — Kids Summer Camps Marketplace — lead output — 2026-05-18T09:07:46.802Z
+## SunnyDays — Kids Summer Camps Marketplace — lead output — 2026-05-18T16:09:06.438Z
 
-- **Vision:** SunnyDays is a single-stop marketplace where parents discover, compare, and book kids' summer camps in one frictionless checkout.
+- **Vision** — SunnyDays is the single destination where parents discover, compare, and book kids' summer camps in one seamless checkout.
 
-- **Top 3 user stories:**
-  - As a parent, I can browse 8 seeded camps as cards (photo/emoji, age range, dates, price, category, description) and filter by category so I can quickly narrow options.
-  - As a parent, I can add multiple camps to a cart with quantity controls and remove items, seeing a live subtotal and total, so I can plan a full summer without losing my selections.
-  - As a parent, I can complete a checkout form (name, email, mock card) and receive an order confirmation ID so I feel confident my bookings are captured.
+- **Top 3 user stories** — (1) As a parent, I browse 8 camp cards filtered by category so I can quickly surface relevant programs. (2) As a parent, I add multiple camps to a cart with quantity controls so I can book for siblings in one session. (3) As a parent, I complete a checkout form and receive an order ID so I have confirmation without creating an account.
 
-- **Primary success metric:** ≥80% of test sessions reach order confirmation from a cold browse start (full funnel completion rate).
+- **Primary success metric** — ≥80% of sessions that add ≥1 camp to cart complete checkout (cart-to-order conversion).
 
-- **MVP scope guardrails:** 8 seeded camps, client-side in-memory state only, single-page app, no auth, no real payments, no backend — ship fast and validate the browse→cart→checkout loop.
+- **MVP scope guardrails** — 8 seeded camps across ≥3 categories; browse + filter + card detail; cart with quantity/remove + subtotal/total; single-page checkout with parent name, email, mock card, and generated order ID; in-memory state only.
 
-- **Non-goals for v1:** User accounts / login, persistent storage or backend API, camp operator portal, reviews/ratings, search/sort beyond category filter, mobile-native app, real payment processing, email delivery of order confirmation.
+- **Non-goals for v1** — User accounts / authentication; real payment processing; camp provider portal / CMS; search / sort beyond category filter; availability or capacity enforcement; mobile native app.
 
-- **Launch readiness signal:** All three user stories pass end-to-end in a browser with zero console errors; cart total matches sum of line items; order ID renders on confirmation screen; category filter correctly isolates camps.
+- **Launch readiness signal** — All 8 camps renderable as cards; category filter narrows results correctly; cart CRUD and totals accurate; checkout produces a non-empty order ID; zero console errors on the happy path end-to-end.

@@ -106,7 +106,7 @@ async function handleBuild(_req: IncomingMessage, res: ServerResponse): Promise<
     };
 
     emit('stage', { message: 'Running pipeline…' });
-    const result = await runBuild(client, team, squadDir, outputDir, events);
+    const result = await runBuild(client, team, demoRoot, outputDir, events);
 
     emit('done', { ok: true, paths: result.paths });
 

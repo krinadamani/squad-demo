@@ -16,6 +16,7 @@ import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CastingEngine, onboardAgent } from '@bradygaster/squad-sdk';
 import type { CastMember } from '@bradygaster/squad-sdk';
+import { appendToHistory } from '@bradygaster/squad-sdk/agents';
 import { SquadClient } from '@bradygaster/squad-sdk/client';
 import { buildAppHtml, CAMPS, DEFAULT_SPEC } from './app-template.js';
 import type { BuildSpec } from './app-template.js';
@@ -107,14 +108,27 @@ function countHistoryEntries(squadDir: string, agentName: string): number {
   return matches ? matches.length : 0;
 }
 
-function appendAgentHistory(squadDir: string, agentName: string, productName: string, role: Role, output: string): boolean {
-  const p = join(squadDir, 'agents', agentName.toLowerCase(), 'history.md');
-  if (!existsSync(p)) return true; // treated as skipped
+/**
+ * Append a per-turn entry to the agent's history.md using the SDK's
+ * concurrency-safe appendToHistory(). Returns true when the entry was
+ * skipped because a marker for this product+role was already present.
+ */
+async function appendAgentHistory(
+  teamRoot: string,
+  agentName: string,
+  productName: string,
+  role: Role,
+  output: string,
+): Promise<boolean> {
+  const squadDir = join(teamRoot, '.squad');
   const marker = `${productName} — ${role} output`;
-  const existing = readFileSync(p, 'utf8');
+  const existing = readAgentHistory(squadDir, agentName);
+  if (!existing) return true; // history shadow not yet created — treat as skipped
   if (existing.includes(marker)) return true;
-  const entry = `\n## ${marker} — ${new Date().toISOString()}\n\n${output}\n`;
-  writeFileSync(p, existing + entry, 'utf8');
+  // Section: 'Learnings' — the SDK groups by date under this section.
+  // Marker line lets us dedup on re-runs.
+  const content = `**${marker}**\n\n${output}`;
+  await appendToHistory(teamRoot, agentName.toLowerCase(), 'Learnings', content);
   return false;
 }
 
@@ -302,10 +316,11 @@ export async function castAndOnboard(demoRoot: string, squadDir: string): Promis
 export async function runBuild(
   client: SquadClient,
   team: CastMember[],
-  squadDir: string,
+  teamRoot: string,
   outputDir: string,
   events?: BuildEvents,
 ): Promise<BuildResult> {
+  const squadDir = join(teamRoot, '.squad');
   const outputs: Partial<Record<Role, string>> = {};
   const order: Role[] = ['lead', 'developer', 'tester', 'scribe'];
   const appPath = join(outputDir, 'index.html');
@@ -347,7 +362,7 @@ export async function runBuild(
       events?.onAppShipped?.({ app: appPath, brief: '(pending — written after Launch Lead)' });
     }
 
-    const skipped = appendAgentHistory(squadDir, agent.name, PRODUCT_BRIEF.productName, role, out);
+    const skipped = await appendAgentHistory(teamRoot, agent.name, PRODUCT_BRIEF.productName, role, out);
     events?.onHistoryWritten?.(role, agent.name, skipped);
   }
 

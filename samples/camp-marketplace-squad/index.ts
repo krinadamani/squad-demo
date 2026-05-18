@@ -52,7 +52,7 @@ async function main(): Promise<void> {
   hr('Step 4 — Squad pipeline (each agent reads prior outputs + their history.md)');
   const outputDir = join(here, 'output');
   try {
-    await runBuild(client, team, squadDir, outputDir, {
+    await runBuild(client, team, demoRoot, outputDir, {
       onAgentStart: (role, agent, ctx) => {
         console.log(`\n  ▶ ${ROLE_DISPLAY[role]} (${agent.displayName}) thinking…`);
         console.log(`     reading prior: ${ctx.priorRoles.length ? ctx.priorRoles.join(' → ') : '(first in line)'}`);
